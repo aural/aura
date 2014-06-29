@@ -1,4 +1,4 @@
 aural
 =====
 
-Audio server writtein in Go
+Audio server written in Go
