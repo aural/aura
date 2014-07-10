@@ -3,6 +3,7 @@ package aural
 import (
 	"log"
 	"math/rand"
+	"time"
 
 	"code.google.com/p/portaudio-go/portaudio"
 	"github.com/mkb218/gosndfile/sndfile"
@@ -60,6 +61,8 @@ func (playlist *Playlist) Shuffle() {
 	if len(playlist.Tracks) == 0 {
 		return
 	}
+
+	rand.Seed(time.Now().UTC().UnixNano())
 
 	for i, j := len(playlist.Tracks)-1, 0; i > 0; i-- {
 		j = rand.Intn(i)
