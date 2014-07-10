@@ -21,3 +21,12 @@ func (track *Track) Load() error {
 
 	return nil
 }
+
+func (track Track) Play() {
+	var tracks []Track
+	PlayState.Tracks = append(tracks, track)
+}
+
+func (track Track) Queue() {
+	PlayState.Tracks = append(PlayState.Tracks, track)
+}
