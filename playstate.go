@@ -1,11 +1,6 @@
 package aural
 
-import (
-	"fmt"
-	"log"
-
-	"code.google.com/p/portaudio-go/portaudio"
-)
+import "code.google.com/p/portaudio-go/portaudio"
 
 var FRAMES_PER_BUFFER = 8916
 
@@ -68,7 +63,7 @@ func Continue() error {
 		if remaining == 0 {
 			var newTracks []Track
 			for i := 1; i < len(PlayState.Tracks); i++ {
-				newTracks[i-1] = PlayState.Tracks[i]
+				newTracks = append(newTracks, PlayState.Tracks[i])
 			}
 			PlayState.Tracks = newTracks
 			break
@@ -84,7 +79,7 @@ func Start() error {
 	err := portaudio.Initialize()
 
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	defer portaudio.Terminate()
@@ -93,12 +88,12 @@ func Start() error {
 
 	for PlayState.Started == true {
 		if err := Continue(); err != nil {
-			log.Fatalln(err)
+			// TODO: Handle error case here.
+			return err
 		}
 
 		if len(PlayState.Tracks) == 0 {
-			fmt.Printf("Playlist over.")
-			break
+			PlayState.Started = false
 		}
 	}
 
