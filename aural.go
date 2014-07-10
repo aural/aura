@@ -2,11 +2,8 @@ package aural
 
 import (
 	"log"
-	"math/rand"
-	"time"
 
 	"code.google.com/p/portaudio-go/portaudio"
-	"github.com/mkb218/gosndfile/sndfile"
 )
 
 var FRAMES_PER_BUFFER = 8916
@@ -16,57 +13,6 @@ func init() {
 
 	if err != nil {
 		log.Fatalln(err)
-	}
-}
-
-type Track struct {
-	Location string
-
-	info *sndfile.Info
-	file *sndfile.File
-}
-
-func (track *Track) Load() error {
-	track.info = new(sndfile.Info)
-	file, err := sndfile.Open(track.Location, sndfile.Read, track.info)
-
-	if err != nil {
-		return err
-	}
-
-	track.file = file
-
-	return nil
-}
-
-type Playlist struct {
-	Tracks []Track
-}
-
-func (playlist *Playlist) Play() error {
-	for _, track := range playlist.Tracks {
-		if err := track.Load(); err != nil {
-			return err
-		}
-
-		if err := track.Play(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (playlist *Playlist) Shuffle() {
-	if len(playlist.Tracks) == 0 {
-		return
-	}
-
-	rand.Seed(time.Now().UTC().UnixNano())
-
-	for i, j := len(playlist.Tracks)-1, 0; i > 0; i-- {
-		j = rand.Intn(i)
-		playlist.Tracks[i], playlist.Tracks[j] = playlist.Tracks[j], playlist.Tracks[i]
 	}
 }
 
@@ -84,7 +30,12 @@ func (track *Track) Play() error {
 
 	defer stream.Close()
 
-	stream.Start()
+	err = stream.Start()
+
+	if err != nil {
+		return err
+	}
+
 	defer stream.Stop()
 
 	for {
