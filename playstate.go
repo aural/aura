@@ -1,101 +1,69 @@
 package aural
 
-import "code.google.com/p/portaudio-go/portaudio"
+import (
+	"log"
 
-var FRAMES_PER_BUFFER = 8916
+	"code.google.com/p/portaudio-go/portaudio"
+)
+
+func init() {
+	if err := portaudio.Initialize(); err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func Terminate() {
+	portaudio.Terminate()
+}
 
 type Playable interface {
 	Play()
 	Queue()
 }
 
-var PlayState struct {
+type PlayState struct {
 	CurrentTrack Track
 
 	Tracks      []Track
 	Description string
 	Shuffled    bool
-	Started     bool
 }
 
-func Continue() error {
-	if len(PlayState.Tracks) == 0 {
-		return nil
+func (playState *PlayState) Update(channel chan *PlayState) {
+	if len(playState.Tracks) == 0 {
+		channel <- playState
+		return
 	}
 
-	out := make([]int32, FRAMES_PER_BUFFER)
+	playState.CurrentTrack = playState.Tracks[0]
+	track := playState.CurrentTrack
 
-	PlayState.CurrentTrack = PlayState.Tracks[0]
-	track := PlayState.CurrentTrack
+	channel <- playState
 
-	if track.info == nil {
-		if err := track.Load(); err != nil {
-			return err
-		}
+	if err := track.Open(); err != nil {
+		log.Fatalln(err)
 	}
 
-	stream, err := portaudio.OpenDefaultStream(
-		0, int(track.info.Channels),
-		float64(track.info.Samplerate),
-		FRAMES_PER_BUFFER, &out)
-
-	if err != nil {
-		return err
+	if err := track.stream.Start(); err != nil {
+		log.Fatalln(err)
 	}
-
-	defer stream.Close()
-
-	err = stream.Start()
-
-	if err != nil {
-		return err
-	}
-
-	defer stream.Stop()
 
 	for {
-		remaining, err := track.file.ReadFrames(out)
+		remaining, err := track.file.ReadFrames(track.out)
 
 		if err != nil {
-			return err
+			log.Fatalln(err)
 		}
 
 		if remaining == 0 {
 			var newTracks []Track
-			for i := 1; i < len(PlayState.Tracks); i++ {
-				newTracks = append(newTracks, PlayState.Tracks[i])
+			for i := 1; i < len(playState.Tracks); i++ {
+				newTracks = append(newTracks, playState.Tracks[i])
 			}
-			PlayState.Tracks = newTracks
+			playState.Tracks = newTracks
 			break
 		}
 
-		stream.Write()
+		track.stream.Write()
 	}
-
-	return nil
-}
-
-func Start() error {
-	err := portaudio.Initialize()
-
-	if err != nil {
-		return err
-	}
-
-	defer portaudio.Terminate()
-
-	PlayState.Started = true
-
-	for PlayState.Started == true {
-		if err := Continue(); err != nil {
-			// TODO: Handle error case here.
-			return err
-		}
-
-		if len(PlayState.Tracks) == 0 {
-			PlayState.Started = false
-		}
-	}
-
-	return nil
 }
