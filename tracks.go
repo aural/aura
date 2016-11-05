@@ -21,7 +21,7 @@ type Track struct {
 }
 
 func (track *Track) Open() error {
-	track.info = new(sndfile.Info)
+	track.info = &sndfile.Info{}
 	file, err := sndfile.Open(track.Location, sndfile.Read, track.info)
 
 	if err != nil {
