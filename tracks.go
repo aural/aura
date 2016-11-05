@@ -1,7 +1,7 @@
 package aural
 
 import (
-	"code.google.com/p/portaudio-go/portaudio"
+	"github.com/gordonklaus/portaudio"
 	"github.com/mkb218/gosndfile/sndfile"
 )
 
