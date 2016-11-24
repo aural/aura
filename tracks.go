@@ -47,13 +47,15 @@ func (track *Track) Open() error {
 	return nil
 }
 
-func (track *Track) Update() error {
-	_, err := track.io.ReadFrames(track.out)
+func (track *Track) Update() (bool, error) {
+	frames, err := track.io.ReadFrames(track.out)
+	done := frames == 0
+
 	if err != nil {
-		return err
+		return false, err
 	}
-	track.stream.Write()
-	return nil
+
+	return done, track.stream.Write()
 }
 
 func (track *Track) Start() error {

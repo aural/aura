@@ -52,10 +52,18 @@ func (playstate *Playstate) Update() {
 		if err := track.Start(); err != nil {
 			log.Fatalln(err)
 		}
+
+		log.Println("Now playing", track.Location)
 	}
 
-	if err := track.Update(); err != nil {
-		log.Fatalln(err)
+	done, err := track.Update()
+
+	if done || err != nil {
+		playstate.Playlist.Pop()
+	}
+
+	if err != nil {
+		log.Println("Skipping due to error:", err)
 	}
 
 	playstate.current = track
