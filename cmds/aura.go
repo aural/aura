@@ -41,7 +41,6 @@ func main() {
 	}
 
 	for _, trackLocation := range trackLocations {
-		log.Println("Requesting stream for", trackLocation)
 		socket.SendMessage(aural.MESSAGE_LOAD, trackLocation)
 		sockets, err := poller.Poll(5000 * time.Millisecond)
 
@@ -51,13 +50,11 @@ func main() {
 		}
 
 		if len(sockets) > 0 {
-			reply, err := socket.RecvMessage(0)
+			_, err := socket.RecvMessage(0)
 
 			if err != nil {
 				break
 			}
-
-			log.Println("-->", reply[0])
 		}
 	}
 }

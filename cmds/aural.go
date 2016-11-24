@@ -41,7 +41,6 @@ func createServer(playstate *aural.Playstate) chan string {
 		defer server.Close()
 
 		server.Bind(serverLocation)
-		log.Println("Listening at", serverLocation)
 
 		for {
 			request, err := server.RecvMessage(0)
@@ -49,8 +48,6 @@ func createServer(playstate *aural.Playstate) chan string {
 			if err != nil {
 				log.Fatalln(err)
 			}
-
-			log.Println("<-", request)
 
 			var arguments []string
 
