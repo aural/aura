@@ -50,11 +50,20 @@ func createServer(playstate *aural.Playstate) chan string {
 				log.Fatalln(err)
 			}
 
-			log.Println("<-", request[0])
-			playstate.Playlist.Queue(request[0])
-			server.SendMessage("OK")
+			log.Println("<-", request)
 
-			channel <- request[0]
+			var arguments []string
+
+			if len(request) == 0 {
+				continue
+			} else if len(request) > 1 {
+				arguments = request[1:]
+			} else {
+				arguments = []string{}
+			}
+
+			aural.HandleRequest(playstate, request[0], arguments)
+			server.SendMessage("OK")
 		}
 	}()
 

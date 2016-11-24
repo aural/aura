@@ -33,6 +33,10 @@ func (playstate *Playstate) Queue(playlist *Playlist) *Playlist {
 	return previous
 }
 
+func (playstate *Playstate) Clear() {
+	playstate.Playlist = NewPlaylist([]*Track{})
+}
+
 func (playstate *Playstate) Update() {
 	if playstate.Playlist.Length() == 0 {
 		return

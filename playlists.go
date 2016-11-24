@@ -13,7 +13,11 @@ type Playlist struct {
 
 func NewPlaylist(tracks []*Track) *Playlist {
 	playlist := new(Playlist)
-	playlist.tracks = tracks
+	if tracks != nil {
+		playlist.tracks = tracks
+	} else {
+		playlist.tracks = []*Track{}
+	}
 	return playlist
 }
 

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	zmq "github.com/pebbe/zmq4"
+
+	"github.com/aural/aural"
 )
 
 const (
@@ -40,8 +42,7 @@ func main() {
 
 	for _, trackLocation := range trackLocations {
 		log.Println("Requesting stream for", trackLocation)
-		socket.SendMessage(trackLocation)
-
+		socket.SendMessage(aural.MESSAGE_LOAD, trackLocation)
 		sockets, err := poller.Poll(5000 * time.Millisecond)
 
 		if err != nil {
