@@ -16,54 +16,56 @@ func Terminate() {
 	portaudio.Terminate()
 }
 
-type Playable interface {
-	Play()
-	Queue()
+type Playstate struct {
+	current  *Track
+	Playlist *Playlist
 }
 
-type PlayState struct {
-	CurrentTrack Track
-
-	Tracks      []Track
-	Description string
-	Shuffled    bool
+func NewPlaystate() *Playstate {
+	p := new(Playstate)
+	p.Playlist = NewPlaylist([]*Track{})
+	return p
 }
 
-func (playState *PlayState) Update(channel chan *PlayState) {
-	if len(playState.Tracks) == 0 {
-		channel <- playState
+func (playstate *Playstate) Queue(playlist *Playlist) *Playlist {
+	previous := playstate.Playlist
+	playstate.Playlist = playlist
+	return previous
+}
+
+func (playstate *Playstate) Update() {
+	if playstate.Playlist.Length() == 0 {
 		return
 	}
 
-	playState.CurrentTrack = playState.Tracks[0]
-	track := playState.CurrentTrack
+	track := playstate.Playlist.Current()
 
-	channel <- playState
-
-	if err := track.Open(); err != nil {
-		log.Fatalln(err)
-	}
-
-	if err := track.stream.Start(); err != nil {
-		log.Fatalln(err)
-	}
-
-	for {
-		remaining, err := track.file.ReadFrames(track.out)
-
-		if err != nil {
+	if track != playstate.current {
+		if err := track.Open(); err != nil {
 			log.Fatalln(err)
 		}
 
-		if remaining == 0 {
-			var newTracks []Track
-			for i := 1; i < len(playState.Tracks); i++ {
-				newTracks = append(newTracks, playState.Tracks[i])
-			}
-			playState.Tracks = newTracks
-			break
+		if err := track.Start(); err != nil {
+			log.Fatalln(err)
 		}
-
-		track.stream.Write()
 	}
+
+	if err := track.Update(); err != nil {
+		log.Fatalln(err)
+	}
+
+	playstate.current = track
+}
+
+func (playstate *Playstate) MainLoop() chan *Playstate {
+	channel := make(chan *Playstate)
+
+	go func() {
+		for {
+			playstate.Update()
+			channel <- playstate
+		}
+	}()
+
+	return channel
 }

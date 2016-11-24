@@ -13,7 +13,7 @@ type Track struct {
 	Location string
 
 	info *sndfile.Info
-	file *sndfile.File
+	io   *sndfile.File
 
 	isOpen bool
 	out    []int32
@@ -22,14 +22,13 @@ type Track struct {
 
 func (track *Track) Open() error {
 	track.info = &sndfile.Info{}
-	file, err := sndfile.Open(track.Location, sndfile.Read, track.info)
+	io, err := sndfile.Open(track.Location, sndfile.Read, track.info)
 
 	if err != nil {
 		return err
 	}
 
-	track.file = file
-
+	track.io = io
 	track.out = make([]int32, FRAMES_PER_BUFFER)
 
 	stream, err := portaudio.OpenDefaultStream(
@@ -38,7 +37,7 @@ func (track *Track) Open() error {
 		FRAMES_PER_BUFFER, &track.out)
 
 	if err != nil {
-		track.file.Close()
+		track.io.Close()
 		return err
 	}
 
@@ -48,17 +47,21 @@ func (track *Track) Open() error {
 	return nil
 }
 
+func (track *Track) Update() error {
+	_, err := track.io.ReadFrames(track.out)
+	if err != nil {
+		return err
+	}
+	track.stream.Write()
+	return nil
+}
+
+func (track *Track) Start() error {
+	return track.stream.Start()
+}
+
 func (track *Track) Close() error {
 	track.isOpen = false
 	track.stream.Close()
-	return track.file.Close()
-}
-
-func (track Track) Play(playState *PlayState) {
-	var tracks []Track
-	playState.Tracks = append(tracks, track)
-}
-
-func (track Track) Queue(playState *PlayState) {
-	playState.Tracks = append(playState.Tracks, track)
+	return track.io.Close()
 }
