@@ -26,12 +26,15 @@ type Playstate struct {
 
 	stream *portaudio.Stream
 	out    []int32
+
+	isStarted bool
 }
 
 func NewPlaystate() (*Playstate, error) {
 	playstate := Playstate{
-		Playlist: NewPlaylist([]*Track{}),
-		out:      make([]int32, FRAMES_PER_BUFFER),
+		Playlist:  NewPlaylist([]*Track{}),
+		out:       make([]int32, FRAMES_PER_BUFFER),
+		isStarted: false,
 	}
 
 	stream, err := portaudio.OpenDefaultStream(
@@ -44,11 +47,6 @@ func NewPlaystate() (*Playstate, error) {
 	}
 
 	playstate.stream = stream
-
-	if err := playstate.stream.Start(); err != nil {
-		playstate.stream.Close()
-		return nil, err
-	}
 
 	return &playstate, nil
 }
@@ -65,9 +63,23 @@ func (playstate *Playstate) Clear() {
 
 func (playstate *Playstate) Update() *Playstate {
 	if playstate.Playlist.Length() == 0 {
+		if playstate.isStarted {
+			playstate.stream.Stop()
+		}
+
 		return playstate
 	}
 
+	if !playstate.isStarted {
+		if err := playstate.stream.Start(); err != nil {
+			playstate.stream.Close()
+			log.Fatalln(err)
+		}
+
+		playstate.isStarted = true
+	}
+
+	playstate.isStarted = true
 	track := playstate.Playlist.Current()
 
 	if track != playstate.current {

@@ -25,16 +25,16 @@ type LibSndFileAudioSource struct {
 	isOpen bool
 
 	info *sndfile.Info
-	io   *sndfile.File
+	file *sndfile.File
 }
 
 func (source *LibSndFileAudioSource) ReadFrames(out interface{}) (int64, error) {
-	return source.io.ReadFrames(out)
+	return source.file.ReadFrames(out)
 }
 
 func (source *LibSndFileAudioSource) Close() {
 	source.isOpen = false
-	source.io.Close()
+	source.file.Close()
 }
 
 func (source *LibSndFileAudioSource) Channels() int32 {
@@ -47,13 +47,13 @@ func (source *LibSndFileAudioSource) SampleRate() int32 {
 
 func (source *LibSndFileAudioSource) Open(identifier string) error {
 	source.info = &sndfile.Info{}
-	io, err := sndfile.Open(identifier, sndfile.Read, source.info)
+	file, err := sndfile.Open(identifier, sndfile.Read, source.info)
 
 	if err != nil {
 		return err
 	}
 
-	source.io = io
+	source.file = file
 	source.isOpen = true
 
 	return nil
