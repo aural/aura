@@ -71,7 +71,11 @@ func main() {
 	log.Println("Starting aural daemon")
 	defer aural.Terminate()
 
-	playstate := aural.NewPlaystate()
+	playstate, err := aural.NewPlaystate()
+
+	if err != nil {
+		log.Fatalln("Could not acquire context for audio hardware:", err)
+	}
 
 	go createServer(playstate)
 	audio := playstate.MainLoop()
