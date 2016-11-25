@@ -37,9 +37,9 @@ func (playstate *Playstate) Clear() {
 	playstate.Playlist = NewPlaylist([]*Track{})
 }
 
-func (playstate *Playstate) Update() {
+func (playstate *Playstate) Update() *Playstate {
 	if playstate.Playlist.Length() == 0 {
-		return
+		return playstate
 	}
 
 	track := playstate.Playlist.Current()
@@ -67,6 +67,7 @@ func (playstate *Playstate) Update() {
 	}
 
 	playstate.current = track
+	return playstate
 }
 
 func (playstate *Playstate) MainLoop() chan *Playstate {
@@ -74,8 +75,7 @@ func (playstate *Playstate) MainLoop() chan *Playstate {
 
 	go func() {
 		for {
-			playstate.Update()
-			channel <- playstate
+			channel <- playstate.Update()
 		}
 	}()
 

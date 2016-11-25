@@ -1,9 +1,6 @@
 package aural
 
-import (
-	"github.com/gordonklaus/portaudio"
-	"github.com/mkb218/gosndfile/sndfile"
-)
+import "github.com/gordonklaus/portaudio"
 
 const (
 	FRAMES_PER_BUFFER = 8196
@@ -12,43 +9,38 @@ const (
 type Track struct {
 	Location string
 
-	info *sndfile.Info
-	io   *sndfile.File
+	source AudioSource
 
-	isOpen bool
 	out    []int32
 	stream *portaudio.Stream
 }
 
 func (track *Track) Open() error {
-	track.info = &sndfile.Info{}
-	io, err := sndfile.Open(track.Location, sndfile.Read, track.info)
+	track.source = NewAudioSource()
+	err := track.source.Open(track.Location)
 
 	if err != nil {
 		return err
 	}
 
-	track.io = io
 	track.out = make([]int32, FRAMES_PER_BUFFER)
 
 	stream, err := portaudio.OpenDefaultStream(
-		0, int(track.info.Channels),
-		float64(track.info.Samplerate),
+		0, int(track.source.Channels()),
+		float64(track.source.SampleRate()),
 		FRAMES_PER_BUFFER, &track.out)
 
 	if err != nil {
-		track.io.Close()
+		track.source.Close()
 		return err
 	}
 
 	track.stream = stream
-	track.isOpen = true
-
 	return nil
 }
 
 func (track *Track) Update() (bool, error) {
-	frames, err := track.io.ReadFrames(track.out)
+	frames, err := track.source.ReadFrames(track.out)
 	done := frames == 0
 
 	if err != nil {
@@ -62,8 +54,7 @@ func (track *Track) Start() error {
 	return track.stream.Start()
 }
 
-func (track *Track) Close() error {
-	track.isOpen = false
+func (track *Track) Close() {
 	track.stream.Close()
-	return track.io.Close()
+	track.Close()
 }
