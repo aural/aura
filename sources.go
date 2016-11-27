@@ -132,8 +132,7 @@ func (this *MP3AudioSource) Open(identifier string) error {
 	this.channels = channels
 	this.decoder = decoder
 
-	log.Println(this.sampleRate)
-	log.Println(this.channels)
+	log.Println("File ready, but MPG (including MP3) support is still experimental.")
 
 	return nil
 }
