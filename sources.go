@@ -2,12 +2,15 @@ package aural
 
 import (
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
 
 	"github.com/badgerodon/mp3"
 	"github.com/mkb218/gosndfile/sndfile"
+
+	"gopkg.in/h2non/filetype.v0"
 )
 
 type AudioSourceFactory func() AudioSource
@@ -26,15 +29,29 @@ var sourceTypes map[string]AudioSourceFactory
 
 func init() {
 	sourceTypes = make(map[string]AudioSourceFactory)
-	sourceTypes[".mp3"] = NewMP3AudioSource
+	sourceTypes["mp3"] = NewMP3AudioSource
+}
+
+func GetExtensionFor(identifier string) string {
+	buf, err := ioutil.ReadFile(identifier)
+	extension := path.Ext(identifier)
+
+	if kind, unknown := filetype.Match(buf); err == nil {
+		if unknown == nil {
+			extension = kind.Extension
+		}
+	}
+
+	return extension
 }
 
 func NewAudioSource(identifier string) AudioSource {
 	// TODO: Support URLs, not just file paths
-	extension := path.Ext(identifier)
+
+	extension := GetExtensionFor(identifier)
 	factory, ok := sourceTypes[extension]
 
-	if ok == false {
+	if ok != true {
 		factory = NewLibSndFileAudioSource
 	}
 
