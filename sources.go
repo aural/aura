@@ -111,6 +111,7 @@ func (source *MP3AudioSource) Open(identifier string) error {
 }
 
 func NewMP3AudioSource() AudioSource {
+	log.Fatalln("Sorry, but MP3 support is not yet fully functional.")
 	return &MP3AudioSource{}
 }
 
