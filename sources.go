@@ -1,7 +1,6 @@
 package aural
 
 import (
-	"encoding/binary"
 	"io/ioutil"
 	"log"
 	"os"
@@ -132,7 +131,7 @@ func (this *MP3AudioSource) Open(identifier string) error {
 	this.channels = channels
 	this.decoder = decoder
 
-	log.Println("File ready, but MPG (including MP3) support is still experimental.")
+	log.Fatalln("File found at", identifier, "but MPG is still implemented.")
 
 	return nil
 }
@@ -142,29 +141,8 @@ func NewMP3AudioSource() AudioSource {
 }
 
 func (this *MP3AudioSource) ReadFrames(out []int32) (int64, error) {
-	buffer := make([]byte, len(out))
-	length, err := this.decoder.Read(buffer)
-
-	if err != nil {
-		return 0, err
-	}
-
-	outIndex := 0
-
-	for byteIndex := 0; byteIndex < len(buffer); {
-		result, bytesRead := binary.Varint(buffer[byteIndex:])
-
-		if bytesRead <= 0 {
-			break
-		}
-
-		byteIndex += bytesRead
-
-		out[outIndex] = int32(result)
-		outIndex++
-	}
-
-	return int64(length), nil
+	// TODO: This sucks
+	return 0, nil
 }
 
 func (this *MP3AudioSource) Close() {
