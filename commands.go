@@ -5,9 +5,6 @@ type handlerMap map[string]MessageHandler
 
 const (
 	DEFAULT_PORT int = 28346
-
-	MESSAGE_LOAD  string = "LOAD"
-	MESSAGE_CLEAR        = "CLEAR"
 )
 
 var handlers handlerMap
@@ -15,8 +12,8 @@ var handlers handlerMap
 func init() {
 	handlers = make(handlerMap)
 
-	handlers[MESSAGE_LOAD] = LoadHandler
-	handlers[MESSAGE_CLEAR] = ClearHandler
+	handlers["LOAD"] = LoadHandler
+	handlers["CLEAR"] = ClearHandler
 }
 
 func LoadHandler(playstate *Playstate, arguments []string) {

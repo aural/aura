@@ -61,13 +61,16 @@ func (playstate *Playstate) Clear() {
 	playstate.Playlist = NewPlaylist([]*Track{})
 }
 
-func (playstate *Playstate) Update() *Playstate {
+func (playstate *Playstate) updateStreamState() bool {
 	if playstate.Playlist.Length() == 0 {
 		if playstate.isStarted {
+			log.Println("Playlist is now empty.")
+
 			playstate.stream.Stop()
+			playstate.isStarted = false
 		}
 
-		return playstate
+		return true
 	}
 
 	if !playstate.isStarted {
@@ -77,6 +80,14 @@ func (playstate *Playstate) Update() *Playstate {
 		}
 
 		playstate.isStarted = true
+	}
+
+	return false
+}
+
+func (playstate *Playstate) Update() *Playstate {
+	if skipUpdate := playstate.updateStreamState(); skipUpdate == true {
+		return playstate
 	}
 
 	playstate.isStarted = true

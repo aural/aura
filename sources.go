@@ -1,14 +1,19 @@
 package aural
 
 import (
+	"io"
+	"log"
 	"os"
+	"path"
 
+	"github.com/badgerodon/mp3"
 	"github.com/mkb218/gosndfile/sndfile"
-	"github.com/tcolgate/mp3"
 )
 
+type AudioSourceFactory func() AudioSource
+
 type AudioSource interface {
-	ReadFrames(out interface{}) (int64, error)
+	ReadFrames(out []int32) (int64, error)
 
 	Channels() int32
 	SampleRate() int32
@@ -17,8 +22,23 @@ type AudioSource interface {
 	Close()
 }
 
-func NewAudioSource() AudioSource {
-	return new(LibSndFileAudioSource)
+var sourceTypes map[string]AudioSourceFactory
+
+func init() {
+	sourceTypes = make(map[string]AudioSourceFactory)
+	sourceTypes[".mp3"] = NewMP3AudioSource
+}
+
+func NewAudioSource(identifier string) AudioSource {
+	// TODO: Support URLs, not just file paths
+	extension := path.Ext(identifier)
+	factory, ok := sourceTypes[extension]
+
+	if ok == false {
+		factory = NewLibSndFileAudioSource
+	}
+
+	return factory()
 }
 
 type LibSndFileAudioSource struct {
@@ -28,21 +48,8 @@ type LibSndFileAudioSource struct {
 	file *sndfile.File
 }
 
-func (source *LibSndFileAudioSource) ReadFrames(out interface{}) (int64, error) {
-	return source.file.ReadFrames(out)
-}
-
-func (source *LibSndFileAudioSource) Close() {
-	source.isOpen = false
-	source.file.Close()
-}
-
-func (source *LibSndFileAudioSource) Channels() int32 {
-	return source.info.Channels
-}
-
-func (source *LibSndFileAudioSource) SampleRate() int32 {
-	return source.info.Samplerate
+func NewLibSndFileAudioSource() AudioSource {
+	return &LibSndFileAudioSource{}
 }
 
 func (source *LibSndFileAudioSource) Open(identifier string) error {
@@ -59,44 +66,85 @@ func (source *LibSndFileAudioSource) Open(identifier string) error {
 	return nil
 }
 
+func (source *LibSndFileAudioSource) ReadFrames(out []int32) (int64, error) {
+	return source.file.ReadFrames(out)
+}
+
+func (source *LibSndFileAudioSource) Close() {
+	source.isOpen = false
+	source.file.Close()
+}
+
+func (source *LibSndFileAudioSource) Channels() int32 {
+	return source.info.Channels
+}
+
+func (source *LibSndFileAudioSource) SampleRate() int32 {
+	return source.info.Samplerate
+}
+
 type MP3AudioSource struct {
-	file    *os.File
-	decoder *mp3.Decoder
-
-	lastFrame mp3.Frame
-}
-
-func (source *MP3AudioSource) Channels() int32 {
-	switch source.lastFrame.Header().ChannelMode() {
-	case mp3.Stereo, mp3.JointStereo, mp3.DualChannel:
-		return 2
-	default:
-		return 1
-	}
-}
-
-func (source *MP3AudioSource) SampleRate() int32 {
-	return int32(source.lastFrame.Header().SampleRate())
-}
-
-func (source *MP3AudioSource) ReadFrames(out interface{}) (int64, error) {
-	err := source.decoder.Decode(&source.lastFrame)
-	return int64(source.lastFrame.Size()), err
+	file   *os.File
+	frames *mp3.Frames
 }
 
 func (source *MP3AudioSource) Open(identifier string) error {
+	var fileSeeker io.ReadSeeker
 	file, err := os.Open(identifier)
 
 	if err != nil {
 		return err
 	}
 
+	fileSeeker = file
+	frames, err := mp3.GetFrames(fileSeeker)
+
+	if err != nil {
+		file.Close()
+		return err
+	}
+
 	source.file = file
-	source.decoder = mp3.NewDecoder(file)
+	source.frames = frames
 
 	return nil
 }
 
+func NewMP3AudioSource() AudioSource {
+	return &MP3AudioSource{}
+}
+
+func (source *MP3AudioSource) ReadFrames(out []int32) (totalSize int64, err error) {
+	for i := 0; i < len(out); i++ {
+		hasFrame := source.frames.Next()
+
+		if hasFrame == false {
+			log.Println()
+			// TODO: Should we continue or return an error here?...
+			return totalSize, source.frames.Error()
+		}
+
+		header := source.frames.Header()
+		out[i] = int32(header.Samples)
+		totalSize += header.Size
+	}
+
+	return totalSize, nil
+}
+
 func (source *MP3AudioSource) Close() {
 	source.file.Close()
+}
+
+func (source *MP3AudioSource) Channels() int32 {
+	switch source.frames.Header().ChannelMode {
+	case mp3.SingleChannel:
+		return 1
+	default:
+		return 2
+	}
+}
+
+func (source *MP3AudioSource) SampleRate() int32 {
+	return int32(source.frames.Header().SampleRate)
 }

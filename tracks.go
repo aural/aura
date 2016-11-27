@@ -7,7 +7,7 @@ type Track struct {
 }
 
 func (track *Track) Open() error {
-	track.source = NewAudioSource()
+	track.source = NewAudioSource(track.Location)
 	err := track.source.Open(track.Location)
 
 	if err != nil {

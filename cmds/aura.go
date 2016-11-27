@@ -6,8 +6,6 @@ import (
 	"time"
 
 	zmq "github.com/pebbe/zmq4"
-
-	"github.com/aural/aural"
 )
 
 type HandlerMap map[string]func(*zmq.Socket, []string)
@@ -36,7 +34,7 @@ func LoadHandler(socket *zmq.Socket, trackIdentifiers []string) {
 	}
 
 	for _, trackIdentifier := range trackIdentifiers {
-		socket.SendMessage(aural.MESSAGE_LOAD, trackIdentifier)
+		socket.SendMessage("LOAD", trackIdentifier)
 		sockets, err := poller.Poll(5000 * time.Millisecond)
 
 		if err != nil {
