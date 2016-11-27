@@ -6,9 +6,9 @@ type Track struct {
 	source AudioSource
 }
 
-func (track *Track) Open() error {
-	track.source = NewAudioSource(track.Location)
-	err := track.source.Open(track.Location)
+func (this *Track) Open() error {
+	this.source = NewAudioSource(this.Location)
+	err := this.source.Open(this.Location)
 
 	if err != nil {
 		return err
@@ -17,17 +17,16 @@ func (track *Track) Open() error {
 	return nil
 }
 
-func (track *Track) Update(playstate *Playstate) (bool, error) {
-	frames, err := track.source.ReadFrames(playstate.out)
-	done := frames == 0
+func (this *Track) Update(playstate *Playstate) (bool, error) {
+	size, err := this.source.ReadFrames(playstate.out)
 
 	if err != nil {
 		return false, err
 	}
 
-	return done, playstate.stream.Write()
+	return size == 0, nil
 }
 
-func (track *Track) Close() {
-	track.source.Close()
+func (this *Track) Close() {
+	this.source.Close()
 }

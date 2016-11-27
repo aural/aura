@@ -112,6 +112,10 @@ func (playstate *Playstate) Update() *Playstate {
 		log.Println("Skipping due to error:", err)
 	}
 
+	if err = playstate.stream.Write(); err != nil {
+		log.Println("Error writing data to audio hardware.")
+	}
+
 	return playstate
 }
 

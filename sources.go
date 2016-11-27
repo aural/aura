@@ -1,16 +1,13 @@
 package aural
 
 import (
-	"io"
 	"io/ioutil"
-	"log"
-	"os"
 	"path"
 
-	"github.com/badgerodon/mp3"
 	"github.com/mkb218/gosndfile/sndfile"
-
 	"gopkg.in/h2non/filetype.v0"
+
+	mpg "github.com/bobertlo/go-mpg123/mpg123"
 )
 
 type AudioSourceFactory func() AudioSource
@@ -69,100 +66,98 @@ func NewLibSndFileAudioSource() AudioSource {
 	return &LibSndFileAudioSource{}
 }
 
-func (source *LibSndFileAudioSource) Open(identifier string) error {
-	source.info = &sndfile.Info{}
-	file, err := sndfile.Open(identifier, sndfile.Read, source.info)
+func (this *LibSndFileAudioSource) Open(identifier string) error {
+	this.info = &sndfile.Info{}
+	file, err := sndfile.Open(identifier, sndfile.Read, this.info)
 
 	if err != nil {
 		return err
 	}
 
-	source.file = file
-	source.isOpen = true
+	this.file = file
+	this.isOpen = true
 
 	return nil
 }
 
-func (source *LibSndFileAudioSource) ReadFrames(out []int32) (int64, error) {
-	return source.file.ReadFrames(out)
+func (this *LibSndFileAudioSource) ReadFrames(out []int32) (int64, error) {
+	return this.file.ReadFrames(out)
 }
 
-func (source *LibSndFileAudioSource) Close() {
-	source.isOpen = false
-	source.file.Close()
+func (this *LibSndFileAudioSource) Close() {
+	this.isOpen = false
+	this.file.Close()
 }
 
-func (source *LibSndFileAudioSource) Channels() int32 {
-	return source.info.Channels
+func (this *LibSndFileAudioSource) Channels() int32 {
+	return this.info.Channels
 }
 
-func (source *LibSndFileAudioSource) SampleRate() int32 {
-	return source.info.Samplerate
+func (this *LibSndFileAudioSource) SampleRate() int32 {
+	return this.info.Samplerate
 }
 
 type MP3AudioSource struct {
-	file   *os.File
-	frames *mp3.Frames
+	sampleRate int64
+	channels   int
+
+	decoder *mpg.Decoder
 }
 
-func (source *MP3AudioSource) Open(identifier string) error {
-	var fileSeeker io.ReadSeeker
-	file, err := os.Open(identifier)
+func (this *MP3AudioSource) Open(identifier string) error {
+	decoder, err := mpg.NewDecoder("")
 
 	if err != nil {
 		return err
 	}
 
-	fileSeeker = file
-	frames, err := mp3.GetFrames(fileSeeker)
+	err = decoder.Open(identifier)
 
 	if err != nil {
-		file.Close()
 		return err
 	}
 
-	source.file = file
-	source.frames = frames
+	sampleRate, channels, encoding := decoder.GetFormat()
+
+	decoder.FormatNone()
+	decoder.Format(sampleRate, channels, encoding)
+
+	this.sampleRate = sampleRate
+	this.channels = channels
+	this.decoder = decoder
 
 	return nil
 }
 
 func NewMP3AudioSource() AudioSource {
-	log.Fatalln("Sorry, but MP3 support is not yet fully functional.")
 	return &MP3AudioSource{}
 }
 
-func (source *MP3AudioSource) ReadFrames(out []int32) (totalSize int64, err error) {
-	for i := 0; i < len(out); i++ {
-		hasFrame := source.frames.Next()
+func (this *MP3AudioSource) ReadFrames(out []int32) (int64, error) {
+	buffer := make([]byte, len(out))
+	length, err := this.decoder.Read(buffer)
 
-		if hasFrame == false {
-			log.Println()
-			// TODO: Should we continue or return an error here?...
-			return totalSize, source.frames.Error()
-		}
-
-		header := source.frames.Header()
-		out[i] = int32(header.Samples)
-		totalSize += header.Size
+	if err != nil {
+		return 0, err
 	}
 
-	return totalSize, nil
-}
-
-func (source *MP3AudioSource) Close() {
-	source.file.Close()
-}
-
-func (source *MP3AudioSource) Channels() int32 {
-	switch source.frames.Header().ChannelMode {
-	case mp3.SingleChannel:
-		return 1
-	default:
-		return 2
+	for index := 0; index < len(out); index++ {
+		out[index] = int32(buffer[index])
 	}
+
+	return int64(length), nil
 }
 
-func (source *MP3AudioSource) SampleRate() int32 {
-	return int32(source.frames.Header().SampleRate)
+func (this *MP3AudioSource) Close() {
+	this.sampleRate = 0
+	this.channels = 0
+	this.decoder.Close()
+}
+
+func (this *MP3AudioSource) Channels() int32 {
+	return int32(this.channels)
+}
+
+func (this *MP3AudioSource) SampleRate() int32 {
+	return int32(this.sampleRate)
 }
