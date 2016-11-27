@@ -1,7 +1,10 @@
 package aural
 
 import (
+	"encoding/binary"
 	"io/ioutil"
+	"log"
+	"os"
 	"path"
 
 	"github.com/mkb218/gosndfile/sndfile"
@@ -105,14 +108,17 @@ type MP3AudioSource struct {
 }
 
 func (this *MP3AudioSource) Open(identifier string) error {
-	decoder, err := mpg.NewDecoder("")
-
+	file, err := os.Open(identifier)
 	if err != nil {
 		return err
 	}
 
-	err = decoder.Open(identifier)
+	decoder, err := mpg.NewDecoder("")
+	if err != nil {
+		return err
+	}
 
+	err = decoder.OpenFile(file)
 	if err != nil {
 		return err
 	}
@@ -125,6 +131,9 @@ func (this *MP3AudioSource) Open(identifier string) error {
 	this.sampleRate = sampleRate
 	this.channels = channels
 	this.decoder = decoder
+
+	log.Println(this.sampleRate)
+	log.Println(this.channels)
 
 	return nil
 }
@@ -141,8 +150,19 @@ func (this *MP3AudioSource) ReadFrames(out []int32) (int64, error) {
 		return 0, err
 	}
 
-	for index := 0; index < len(out); index++ {
-		out[index] = int32(buffer[index])
+	outIndex := 0
+
+	for byteIndex := 0; byteIndex < len(buffer); {
+		result, bytesRead := binary.Varint(buffer[byteIndex:])
+
+		if bytesRead <= 0 {
+			break
+		}
+
+		byteIndex += bytesRead
+
+		out[outIndex] = int32(result)
+		outIndex++
 	}
 
 	return int64(length), nil
@@ -151,7 +171,9 @@ func (this *MP3AudioSource) ReadFrames(out []int32) (int64, error) {
 func (this *MP3AudioSource) Close() {
 	this.sampleRate = 0
 	this.channels = 0
+
 	this.decoder.Close()
+	this.decoder = nil
 }
 
 func (this *MP3AudioSource) Channels() int32 {

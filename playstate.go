@@ -38,9 +38,9 @@ func NewPlaystate() (*Playstate, error) {
 	}
 
 	stream, err := portaudio.OpenDefaultStream(
-		0, int(2),
-		float64(44100),
-		FRAMES_PER_BUFFER, &playstate.out)
+		0, 2, 44100,
+		FRAMES_PER_BUFFER, &playstate.out,
+	)
 
 	if err != nil {
 		return nil, err
