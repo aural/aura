@@ -1,5 +1,5 @@
 dependencies:
-  post:
+  override:
     - sudo apt-get install libmpg123-dev
 
 test:
