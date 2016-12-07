@@ -1,0 +1,6 @@
+test:
+  override:
+    - go test --coverprofile=coverage.txt -race --covermode=atomic
+
+  post:
+    - bash <(curl -s https://codecov.io/bash)
