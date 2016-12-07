@@ -1,6 +1,6 @@
 dependencies:
   override:
-    - sudo apt-get install libmpg123-dev portaudio19-dev libsndfile1-dev
+    - sudo apt-get install libmpg123-dev portaudio19-dev libsndfile1-dev libsndfile1
     - go get -t -d -v ./...
 
 test:
