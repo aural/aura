@@ -1,3 +1,7 @@
+dependencies:
+  post:
+    - sudo apt-get install libmpg123-dev
+
 test:
   override:
     - go test --coverprofile=coverage.txt -race --covermode=atomic
