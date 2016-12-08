@@ -5,15 +5,15 @@ import (
 	"log"
 	"time"
 
+	"github.com/aural/aural"
 	zmq "github.com/pebbe/zmq4"
 )
 
-type HandlerMap map[string]func(*zmq.Socket, []string)
-
 const (
 	defaultTrackName = "data/example.flac"
-	serverLocation   = "tcp://127.0.0.1:9090"
 )
+
+type HandlerMap map[string]func(*zmq.Socket, []string)
 
 var handlers HandlerMap
 
@@ -74,14 +74,15 @@ func ClearHandler(socket *zmq.Socket, trackIdentifiers []string) {
 }
 
 func main() {
+	configuration := aural.GetConfiguration()
 	socket, err := zmq.NewSocket(zmq.REQ)
 
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	log.Println("Connecting to server at", serverLocation)
-	socket.Connect(serverLocation)
+	log.Println("Connecting to server at", configuration.Address)
+	socket.Connect(configuration.Address)
 	defer socket.Close()
 
 	if flag.NArg() == 0 {

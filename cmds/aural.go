@@ -9,10 +9,6 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-const (
-	serverLocation = "tcp://127.0.0.1:9090"
-)
-
 func init() {
 	flag.Parse()
 }
@@ -28,8 +24,7 @@ func tracks(locations []string) (tracks []*aural.Track) {
 
 	return tracks
 }
-
-func createServer(playstate *aural.Playstate) chan string {
+func createServer(configuration *aural.Configuration, playstate *aural.Playstate) chan string {
 	channel := make(chan string)
 	server, err := zmq.NewSocket(zmq.REP)
 
@@ -40,7 +35,8 @@ func createServer(playstate *aural.Playstate) chan string {
 	go func() {
 		defer server.Close()
 
-		server.Bind(serverLocation)
+		log.Println("Listening at address:", configuration.Address)
+		server.Bind(configuration.Address)
 
 		for {
 			request, err := server.RecvMessage(0)
@@ -68,6 +64,8 @@ func createServer(playstate *aural.Playstate) chan string {
 }
 
 func main() {
+	configuration := aural.GetConfiguration()
+
 	log.Println("Starting aural daemon")
 	defer aural.Terminate()
 
@@ -77,7 +75,7 @@ func main() {
 		log.Fatalln("Could not acquire context for audio hardware:", err)
 	}
 
-	go createServer(playstate)
+	go createServer(&configuration, playstate)
 	audio := playstate.MainLoop()
 
 	for {
